@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Work Tracker Pro</title>
+
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #f4fdf6;
+  }
+
+  header {
+    background: #16a34a;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 20px;
+  }
+
+  .container {
+    padding: 20px;
+  }
+
+  .card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+  }
+
+  input, button {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+
+  button {
+    background: #16a34a;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #15803d;
+  }
+
+  .tabs button {
+    margin-right: 10px;
+  }
+
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+
+  .day {
+    background: #ecfdf5;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .today {
+    background: #16a34a;
+    color: white;
+  }
+</style>
+
+</head>
+
+<body>
+
+<header>📊 Work Tracker</header>
+
+<div class="container">
+
+  <!-- หน้า Dashboard -->
+  <div class="card">
+    <h2>📅 วันนี้</h2>
+    <p id="todayDate"></p>
+
+    <input type="number" id="count" placeholder="จำนวนงานวันนี้">
+    <button onclick="saveToday()">บันทึก</button>
+
+    <h3 id="todayTotal"></h3>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button onclick="showSection('summary')">📊 สรุป</button>
+    <button onclick="showSection('calendar')">📅 ภาพรวม</button>
+  </div>
+
+  <!-- Summary -->
+  <div id="summary" class="card">
+    <h2>📊 สรุป</h2>
+    <p id="daily"></p>
+    <p id="weekly"></p>
+    <p id="monthly"></p>
+  </div>
+
+  <!-- Calendar -->
+  <div id="calendarSection" class="card" style="display:none;">
+    <h2>📅 ปฏิทิน</h2>
+    <div class="calendar" id="calendar"></div>
+  </div>
+
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("workData")) || {};
+
+const today = new Date();
+const todayStr = today.toISOString().slice(0,10);
+
+document.getElementById("todayDate").innerText = todayStr;
+
+function saveToday() {
+  const count = parseInt(document.getElementById("count").value);
+  if (!count) return alert("ใส่จำนวนก่อน");
+
+  data[todayStr] = (data[todayStr] || 0) + count;
+  localStorage.setItem("workData", JSON.stringify(data));
+
+  renderAll();
+}
+
+function renderAll() {
+  renderToday();
+  renderSummary();
+  renderCalendar();
+}
+
+function renderToday() {
+  const total = data[todayStr] || 0;
+  document.getElementById("todayTotal").innerText = `วันนี้ทำได้: ${total} ตัว`;
+}
+
+function renderSummary() {
+  let daily = data[todayStr] || 0;
+  let weekly = 0;
+  let monthly = 0;
+
+  const currentMonth = today.getMonth();
+
+  Object.keys(data).forEach(date => {
+    const d = new Date(date);
+    const diff = (today - d) / (1000 * 60 * 60 * 24);
+
+    if (diff <= 7) weekly += data[date];
+    if (d.getMonth() === currentMonth) monthly += data[date];
+  });
+
+  document.getElementById("daily").innerText = `วันนี้: ${daily} ตัว`;
+  document.getElementById("weekly").innerText = `สัปดาห์นี้: ${weekly} ตัว`;
+  document.getElementById("monthly").innerText = `เดือนนี้: ${monthly} ตัว`;
+}
+
+function renderCalendar() {
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
+
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    calendar.innerHTML += `<div></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const value = data[dateStr] || 0;
+
+    calendar.innerHTML += `
+      <div class="day ${dateStr === todayStr ? 'today' : ''}">
+        <b>${d}</b><br>${value}
+      </div>
+    `;
+  }
+}
+
+function showSection(section) {
+  document.getElementById("summary").style.display = section === 'summary' ? 'block' : 'none';
+  document.getElementById("calendarSection").style.display = section === 'calendar' ? 'block' : 'none';
+}
+
+renderAll();
+</script>
+
+</body>
+</html>
